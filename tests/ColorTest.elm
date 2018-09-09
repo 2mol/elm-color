@@ -2,7 +2,7 @@ module ColorTest exposing (all)
 
 import Color exposing (Color)
 import Expect exposing (FloatingPointTolerance(..))
-import Fuzz exposing (Fuzzer, floatRange)
+import Fuzz exposing (Fuzzer, floatRange, intRange)
 import Hex
 import Test exposing (..)
 
@@ -16,6 +16,11 @@ import Test exposing (..)
 unit : Fuzzer Float
 unit =
     floatRange 0 1
+
+
+int255 : Fuzzer Int
+int255 =
+    intRange 0 255
 
 
 tuple2 : Fuzzer a -> Fuzzer b -> Fuzzer ( a, b )
@@ -92,7 +97,19 @@ all =
                         , .blue >> Expect.within (Absolute 0.000001) b
                         , .alpha >> Expect.equal 1.0
                         ]
-        , describe "can convert hex strings"
+        , fuzz (tuple3 int255 int255 int255)
+            "can represent RGB255 colors"
+          <|
+            \( r, g, b ) ->
+                Color.rgb255 r g b
+                    |> Color.toRgba
+                    |> Expect.all
+                        [ .red >> Expect.within (Absolute 0.000001) (toFloat r / 255)
+                        , .green >> Expect.within (Absolute 0.000001) (toFloat g / 255)
+                        , .blue >> Expect.within (Absolute 0.000001) (toFloat b / 255)
+                        , .alpha >> Expect.equal 1.0
+                        ]
+        , describe "can convert from hex strings"
             [ fuzz (tuple3 hex2 hex2 hex2)
                 "6-digit string without #"
               <|
@@ -106,4 +123,22 @@ all =
                             , .alpha >> Expect.equal 1.0
                             ]
             ]
+        , fuzz (tuple2 (tuple3 int255 int255 int255) unit)
+            "can convert to hex strings"
+          <|
+            \( ( r, g, b ), a ) ->
+                Color.rgba (toFloat r / 255) (toFloat g / 255) (toFloat b / 255) a
+                    |> Color.toHex
+                    |> Expect.all
+                        [ .hex
+                            >> Expect.equal
+                                (String.concat
+                                    [ "#"
+                                    , String.pad 2 '0' (Hex.toString r)
+                                    , String.pad 2 '0' (Hex.toString g)
+                                    , String.pad 2 '0' (Hex.toString b)
+                                    ]
+                                )
+                        , .alpha >> Expect.within (Absolute 0.000001) a
+                        ]
         ]

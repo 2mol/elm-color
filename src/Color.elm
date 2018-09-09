@@ -59,7 +59,7 @@ See also: [`rgba`](#rgba)
 -}
 fromRgba : { red : Float, green : Float, blue : Float, alpha : Float } -> Color
 fromRgba { red, green, blue, alpha } =
-    rgba red green blue alpha
+    RgbaSpace red green blue alpha
 
 
 {-| Creates a `Color` from RGBA (red, green, blue, alpha) values between 0.0 and 1.0 (inclusive).
@@ -71,11 +71,7 @@ See also: [`fromRgba`](#fromRgba)
 -}
 rgba : Float -> Float -> Float -> Float -> Color
 rgba r g b a =
-    RgbaSpace
-        (clamp 0 1 r)
-        (clamp 0 1 g)
-        (clamp 0 1 b)
-        (clamp 0 1 a)
+    RgbaSpace r g b a
 
 
 {-| Creates a color from RGB (red, green, blue) values between 0.0 and 1.0 (inclusive).
@@ -87,7 +83,7 @@ See also: [`rgba`](#rgba)
 -}
 rgb : Float -> Float -> Float -> Color
 rgb r g b =
-    rgba r g b 1.0
+    RgbaSpace r g b 1.0
 
 
 {-| Creates a color from RGB (red, green, blue) 8-bit integer values between 0 and 255.
@@ -297,19 +293,23 @@ hexToInt char =
             Nothing
 
 
-{-| This function will convert a color to 6-digit hexadecimal string, commonly used in web development.
+{-| This function will convert a color to a 6-digit hexadecimal string in the format `#rrggbb`.
 -}
-toHex : Color -> String
+toHex : Color -> { hex : String, alpha : Float }
 toHex c =
     let
-        { red, green, blue } =
+        { red, green, blue, alpha } =
             toRgba c
     in
-    [ red, green, blue ]
-        |> List.map ((*) 255)
-        |> List.map round
-        |> List.map int255ToHex
-        |> String.concat
+    { hex =
+        [ red, green, blue ]
+            |> List.map ((*) 255)
+            |> List.map round
+            |> List.map int255ToHex
+            |> String.concat
+            |> (++) "#"
+    , alpha = alpha
+    }
 
 
 int255ToHex : Int -> String
